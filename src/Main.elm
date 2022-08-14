@@ -117,7 +117,7 @@ userDataDecoder =
         |> Json.Decode.Pipeline.required "token" Json.Decode.string
         |> Json.Decode.Pipeline.required "email" Json.Decode.string
         |> Json.Decode.Pipeline.optional "displayName" Json.Decode.string ""
-        |> Json.Decode.Pipeline.optional "photoUrl" Json.Decode.string ""
+        |> Json.Decode.Pipeline.optional "photoURL" Json.Decode.string ""
         |> Json.Decode.Pipeline.required "uid" Json.Decode.string
 
 
