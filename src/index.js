@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
+import { query, getFirestore, collection, addDoc, doc, orderBy, onSnapshot, deleteDoc, setDoc, where, getDocs, getDoc } from "firebase/firestore";
 
 import { Elm } from "./Main.elm";
 
@@ -16,35 +17,138 @@ const firebaseApp = initializeApp(firebaseConfig);
 
 const provider = new GoogleAuthProvider();
 const auth = getAuth();
+const db = getFirestore();
 
 const app = Elm.Main.init({
     node: document.getElementById("root")
 });
 
+const sendUserInfo = async (user) => {
+    const idToken = await user.getIdToken();
+
+    const object = {
+        token: idToken,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        uid: user.uid
+    }
+
+    app.ports.signInInfo.send(object);
+}
+
+const sendError = (error) => {
+    console.log(error);
+    app.ports.signInError.send({
+        code: error.code,
+        message: error.message
+    });
+}
+
+const sendTweets = (tweets) => {
+    app.ports.receiveTweets.send(tweets);
+}
+
+const sendLikes = (likes) => {
+    app.ports.receiveLikes.send(likes);
+}
+
+const getTweets = () => {
+    const q = query(collection(db, "tweets"), orderBy("date", "desc"));
+    onSnapshot(q, (querySnapshot) => {
+        const tweets = [];
+        
+        querySnapshot.forEach(x => {
+            const line = x.data();
+            line.uid = x.id;
+
+            tweets.push(line);
+        });
+
+        sendTweets(tweets);
+    });
+}
+
+const getLikes = () => {
+    const q = query(collection(db, "likes"));
+    onSnapshot(q, (querySnapshot) => {
+        const likes = [];
+
+        querySnapshot.forEach(doc => {
+            const line = doc.data();
+            line.uid = doc.id;
+
+            likes.push(line);
+        });
+
+        sendLikes(likes);
+    })
+}
+
 app.ports.signIn.subscribe(async () => {
     try {
         const result = await signInWithPopup(auth, provider);
-        const idToken = await result.user.getIdToken();
-
-        console.log("photoUrl", result.user.photoURL)
-
-        app.ports.signInInfo.send({
-            token: idToken,
-            email: result.user.email,
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-            uid: result.user.uid
-        });
+        await sendUserInfo(result.user);
     } catch (error) {
-        console.log(error);
-        app.ports.signInError.send({
-            code: error.code,
-            message: error.message
-        });
+        sendError(error);
     }
 });
 
 app.ports.signOut.subscribe(() => {
-    console.log("LogOut called");
     signOut(auth);
 });
+
+app.ports.sendTweet.subscribe(async (data) => {
+    try {
+        data.date = Date.now();
+        await addDoc(collection(db, "tweets"), data)
+    } catch (error) {
+        sendError(error);
+    }
+});
+
+app.ports.deleteTweet.subscribe(async (id) => {
+    try {
+        await deleteDoc(doc(collection(db, "tweets"), id));
+    } catch (error) {
+        sendError(error);
+    }
+});
+
+app.ports.likeTweet.subscribe(async (ids) => {
+    const userUid = ids[0];
+    const tweetUid = ids[1];
+
+    try {
+        const q = query(collection(db, "likes"), where("tweetUid", "==", tweetUid), where("userUid", "==", userUid));
+        const likes = await getDocs(q);
+        if (likes.size > 0) {
+            // remove like
+            const id = likes.docs[0].id;
+            await deleteDoc(doc(collection(db, "likes"), id));
+        }
+        else {
+           // add like 
+            await addDoc(collection(db, "likes"), {
+                userUid,
+                tweetUid
+            });
+        }
+    } catch (error) {
+        sendError(error);
+    }
+});
+
+onAuthStateChanged(auth, async (user) => {
+    try {
+        if (user) {
+            await sendUserInfo(user);
+
+            getLikes();
+        }
+    } catch (error) {
+        sendError(error);
+    }
+});
+
+getTweets();
