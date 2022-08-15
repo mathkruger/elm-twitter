@@ -37,7 +37,7 @@ port likeTweet : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
 
----- MODEL ----
+---- MODEL
 
 
 type alias Tweet =
@@ -59,24 +59,48 @@ type alias Like =
 
 
 type alias ErrorData =
-    { code : Maybe String, message : Maybe String }
+    { code : Maybe String
+    , message : Maybe String
+    }
 
 
 type alias UserData =
-    { token : String, email : String, displayName : String, photoURL : String, uid : String }
+    { token : String
+    , email : String
+    , displayName : String
+    , photoURL : String
+    , uid : String
+    }
 
+type alias Filters = 
+    { onlyUserTweets : Bool }
 
 type alias Model =
-    { userData : Maybe UserData, error : ErrorData, inputContent : String, tweets : List Tweet, likes : List Like }
+    { userData : Maybe UserData
+    , error : ErrorData
+    , inputContent : String
+    , tweets : List Tweet
+    , likes : List Like
+    , tweetsFilters : Filters
+    }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { userData = Maybe.Nothing, error = emptyError, inputContent = "", tweets = [], likes = [] }, Cmd.none )
+    (
+        { userData = Maybe.Nothing
+        , error = emptyError
+        , inputContent = ""
+        , tweets = []
+        , likes = []
+        , tweetsFilters = { onlyUserTweets = False }
+        }
+        , Cmd.none
+    )
 
 
 
--- UPDATE
+--- UPDATE
 
 
 type Msg
@@ -90,6 +114,7 @@ type Msg
     | LikesReceived (Result Json.Decode.Error (List Like))
     | RemoveTweet String
     | LikeTweet String String
+    | ChangeOnlyUserTweets Bool 
 
 
 emptyError : ErrorData
@@ -149,6 +174,9 @@ update msg model =
 
         LikeTweet userUid uid ->
             ( model, likeTweet ( Json.Encode.string userUid, Json.Encode.string uid ) )
+        
+        ChangeOnlyUserTweets value ->
+            ( { model | tweetsFilters = { onlyUserTweets = value } }, Cmd.none )
 
 
 messageToError : String -> ErrorData
@@ -274,6 +302,10 @@ view model =
 
 loggedUserView : UserData -> Model -> Html Msg
 loggedUserView userData model =
+    let
+        onlyUserTweets =
+            model.tweetsFilters.onlyUserTweets
+    in
     div []
         [ div [ class "card p-4 my-4" ]
             [ nav [ class "level" ]
@@ -305,7 +337,17 @@ loggedUserView userData model =
                     ]
                 ]
             ]
-        , viewTweets model.likes model.tweets userData
+        , div [ class "card p-4 my-4" ]
+            [ span [ class "mr-2" ] [ text "Filtros:" ]
+            , span [ class ("tag mr-4 " ++ if onlyUserTweets == False then "is-info" else ""), onClick (ChangeOnlyUserTweets False) ] [ text "Mostrar todos os tweets" ]
+            , span [ class ("tag mr-4 " ++ if onlyUserTweets == True then "is-info" else ""), onClick (ChangeOnlyUserTweets True) ] [ text "Mostrar apenas meus tweets" ]
+            ]
+        , viewTweets model.likes (
+            if onlyUserTweets == True then
+                (List.filter (\item -> item.userUid == userData.uid)) model.tweets
+            else
+                model.tweets
+            ) userData
         ]
 
 
