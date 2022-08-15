@@ -242,9 +242,9 @@ getTweetLikesCount likes tweetUid =
     List.length (List.filter (\item -> item.tweetUid == tweetUid) likes)
 
 
-hasUserLikedTweet : List Like -> String -> Bool
-hasUserLikedTweet likes userUid =
-    List.any (\item -> item.userUid == userUid) likes
+hasUserLikedTweet : List Like -> String -> String -> Bool
+hasUserLikedTweet likes userUid tweetUid =
+    List.any (\item -> item.userUid == userUid && item.tweetUid == tweetUid) likes
 
 
 view : Model -> Html Msg
@@ -255,7 +255,7 @@ view model =
                 [ p [ class "title" ]
                     [ text "Elm Twitter" ]
                 , p [ class "subtitle" ]
-                    [ text "A simple twitter-like application written in Elm + Firebase" ]
+                    [ text "Um simples clone de twitter escrito em Elm + Firebase" ]
                 ]
             ]
         , div [ class "container px-4" ]
@@ -340,7 +340,7 @@ viewTweets likes tweets userData =
                                         [ a
                                             [ class
                                                 ("level-item "
-                                                    ++ (if hasUserLikedTweet likes userData.uid == True then
+                                                    ++ (if hasUserLikedTweet likes userData.uid t.uid == True then
                                                             "has-text-danger"
 
                                                         else

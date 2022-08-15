@@ -53,7 +53,7 @@ const sendLikes = (likes) => {
     app.ports.receiveLikes.send(likes);
 }
 
-const getTweets = () => {
+const subscribeForTweets = () => {
     const q = query(collection(db, "tweets"), orderBy("date", "desc"));
     onSnapshot(q, (querySnapshot) => {
         const tweets = [];
@@ -69,7 +69,7 @@ const getTweets = () => {
     });
 }
 
-const getLikes = () => {
+const subscribeForLikes = () => {
     const q = query(collection(db, "likes"));
     onSnapshot(q, (querySnapshot) => {
         const likes = [];
@@ -120,8 +120,12 @@ app.ports.likeTweet.subscribe(async (ids) => {
     const tweetUid = ids[1];
 
     try {
-        const q = query(collection(db, "likes"), where("tweetUid", "==", tweetUid), where("userUid", "==", userUid));
+        const q = query(collection(db, "likes"), 
+            where("tweetUid", "==", tweetUid), 
+            where("userUid", "==", userUid));
+        
         const likes = await getDocs(q);
+
         if (likes.size > 0) {
             // remove like
             const id = likes.docs[0].id;
@@ -144,11 +148,10 @@ onAuthStateChanged(auth, async (user) => {
         if (user) {
             await sendUserInfo(user);
 
-            getLikes();
+            subscribeForTweets();
+            subscribeForLikes();
         }
     } catch (error) {
         sendError(error);
     }
 });
-
-getTweets();
