@@ -110,6 +110,15 @@ app.ports.sendTweet.subscribe(async (data) => {
 app.ports.deleteTweet.subscribe(async (id) => {
     try {
         await deleteDoc(doc(collection(db, "tweets"), id));
+
+        // removing likes attached to the tweet
+        const q = query(collection(db, "likes"), 
+            where("tweetUid", "==", id));
+        
+        const likes = await getDocs(q);
+        likes.forEach(async item => {
+            await deleteDoc(doc(collection(db, "likes"), item.id));
+        });
     } catch (error) {
         sendError(error);
     }
