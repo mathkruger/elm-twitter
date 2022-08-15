@@ -177,7 +177,6 @@ tweetEncoder : Model -> Json.Encode.Value
 tweetEncoder model =
     Json.Encode.object
         [ ( "content", Json.Encode.string model.inputContent )
-        , ( "likes", Json.Encode.int 0 )
         , ( "userDisplayName"
           , case model.userData of
                 Just userData ->
