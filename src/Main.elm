@@ -47,6 +47,7 @@ type alias Tweet =
     , userPhotoURL : String
     , userUid : String
     , date : Int
+    , formatedDate : String
     }
 
 
@@ -213,6 +214,7 @@ tweetDecoder =
         |> Json.Decode.Pipeline.required "userPhotoURL" Json.Decode.string
         |> Json.Decode.Pipeline.required "userUid" Json.Decode.string
         |> Json.Decode.Pipeline.required "date" Json.Decode.int
+        |> Json.Decode.Pipeline.required "formatedDate" Json.Decode.string
 
 
 tweetListDecoder : Json.Decode.Decoder (List Tweet)
@@ -330,6 +332,7 @@ viewTweets likes tweets userData =
                                     [ p []
                                         [ strong []
                                             [ text t.userDisplayName ]
+                                        , small [] [ text (" - " ++ t.formatedDate) ]
                                         , br []
                                             []
                                         , text t.content

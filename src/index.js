@@ -61,7 +61,7 @@ const subscribeForTweets = () => {
         querySnapshot.forEach(x => {
             const line = x.data();
             line.uid = x.id;
-
+            line.formatedDate = new Date(line.date).toLocaleString();
             tweets.push(line);
         });
 
